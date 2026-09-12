@@ -1,0 +1,164 @@
+#!/bin/sh
+SYNOPKG_PKGNAME="rathole"
+[ -z "${SYNOPKG_PKGDEST}" ] && SYNOPKG_PKGDEST="/var/packages/${SYNOPKG_PKGNAME}/target"
+
+# Resolve VAR_DIR: standard DSM 7 path is /var/packages/rathole/var
+if [ -d "/var/packages/${SYNOPKG_PKGNAME}/var" ]; then
+    VAR_DIR="/var/packages/${SYNOPKG_PKGNAME}/var"
+elif [ -n "${SYNOPKG_PKGVAR}" ]; then
+    VAR_DIR="${SYNOPKG_PKGVAR}"
+elif [ -d "${SYNOPKG_PKGDEST}/var" ]; then
+    VAR_DIR="${SYNOPKG_PKGDEST}/var"
+else
+    VAR_DIR="/var/packages/${SYNOPKG_PKGNAME}/var"
+fi
+
+mkdir -p "${VAR_DIR}" 2>/dev/null || true
+chmod 775 "${VAR_DIR}" 2>/dev/null || true
+chown sc-rathole:http "${VAR_DIR}" 2>/dev/null || true
+
+UI_BIN="${SYNOPKG_PKGDEST}/bin/rathole-ui"
+RATHOLE_BIN="${SYNOPKG_PKGDEST}/bin/rathole"
+CONFIG_FILE="${VAR_DIR}/config.toml"
+PID_FILE="/tmp/rathole-ui.pid"
+LOG_FILE="${VAR_DIR}/rathole-ui.log"
+CHILD_PID_FILE="${VAR_DIR}/rathole.pid"
+CHILD_LOG_FILE="${VAR_DIR}/rathole.log"
+
+# Ensure logs in VAR_DIR are writable (0664) or fallback to /tmp
+touch "${LOG_FILE}" 2>/dev/null || true
+chmod 664 "${LOG_FILE}" 2>/dev/null || true
+chown sc-rathole:http "${LOG_FILE}" 2>/dev/null || true
+if ! touch "${LOG_FILE}" 2>/dev/null; then
+    LOG_FILE="/tmp/rathole-ui.log"
+    touch "${LOG_FILE}" 2>/dev/null || true
+    chmod 664 "${LOG_FILE}" 2>/dev/null || true
+fi
+
+touch "${CHILD_LOG_FILE}" 2>/dev/null || true
+chmod 664 "${CHILD_LOG_FILE}" 2>/dev/null || true
+chown sc-rathole:http "${CHILD_LOG_FILE}" 2>/dev/null || true
+if ! touch "${CHILD_LOG_FILE}" 2>/dev/null; then
+    CHILD_LOG_FILE="/tmp/rathole.log"
+    touch "${CHILD_LOG_FILE}" 2>/dev/null || true
+    chmod 664 "${CHILD_LOG_FILE}" 2>/dev/null || true
+fi
+
+is_running() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE" 2>/dev/null)
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    if pidof rathole-ui >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
+start_daemon() {
+    if is_running; then
+        echo "${SYNOPKG_PKGNAME} is already running."
+        exit 0
+    fi
+
+    # Clean stale PID file
+    rm -f "$PID_FILE" 2>/dev/null
+
+    # Ensure config file exists
+    if [ ! -f "${CONFIG_FILE}" ]; then
+        if [ -f "${SYNOPKG_PKGDEST}/var/config.toml" ]; then
+            cp "${SYNOPKG_PKGDEST}/var/config.toml" "${CONFIG_FILE}" 2>/dev/null || true
+        elif [ -f "${SYNOPKG_PKGDEST}/etc/config.toml.default" ]; then
+            cp "${SYNOPKG_PKGDEST}/etc/config.toml.default" "${CONFIG_FILE}" 2>/dev/null || true
+        fi
+    fi
+    touch "${CONFIG_FILE}" 2>/dev/null || true
+    chmod 664 "${CONFIG_FILE}" 2>/dev/null || true
+    chown sc-rathole:http "${CONFIG_FILE}" 2>/dev/null || true
+    touch "${CHILD_LOG_FILE}" 2>/dev/null || true
+    chmod 664 "${CHILD_LOG_FILE}" 2>/dev/null || true
+    chown sc-rathole:http "${CHILD_LOG_FILE}" 2>/dev/null || true
+    touch "${LOG_FILE}" 2>/dev/null || true
+    chmod 664 "${LOG_FILE}" 2>/dev/null || true
+    chown sc-rathole:http "${LOG_FILE}" 2>/dev/null || true
+
+    # Clean lingering old instances if any
+    killall rathole-ui 2>/dev/null || true
+
+    # Launch rathole-ui daemon in background
+    "${UI_BIN}" \
+        -listen ":8520" \
+        -bin "${RATHOLE_BIN}" \
+        -config "${CONFIG_FILE}" \
+        -log "${CHILD_LOG_FILE}" \
+        -pid "${CHILD_PID_FILE}" \
+        </dev/null >> "${LOG_FILE}" 2>&1 &
+
+    DAEMON_PID=$!
+    echo $DAEMON_PID > "${PID_FILE}" 2>/dev/null
+
+    # Wait up to 4 seconds for successful startup
+    for i in 1 2 3 4; do
+        sleep 1
+        if is_running; then
+            if [ ! -s "$PID_FILE" ] && pidof rathole-ui >/dev/null 2>&1; then
+                pidof rathole-ui | awk '{print $1}' > "$PID_FILE" 2>/dev/null
+            fi
+            exit 0
+        fi
+    done
+
+    # If it failed to start, log reason to /tmp/rathole-start.log for diagnostics
+    echo "[$(date)] Failed to start rathole-ui. Exit status 1. Log content:" > /tmp/rathole-start.log
+    tail -n 20 "${LOG_FILE}" >> /tmp/rathole-start.log 2>/dev/null
+    exit 1
+}
+
+stop_daemon() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE" 2>/dev/null)
+        if [ -n "$PID" ]; then
+            kill -TERM "$PID" 2>/dev/null
+            for i in 1 2 3; do
+                if ! kill -0 "$PID" 2>/dev/null; then
+                    break
+                fi
+                sleep 1
+            done
+            kill -9 "$PID" 2>/dev/null
+        fi
+        rm -f "$PID_FILE" 2>/dev/null
+    fi
+
+    killall rathole-ui 2>/dev/null || true
+    killall rathole 2>/dev/null || true
+    rm -f "${CHILD_PID_FILE}" 2>/dev/null
+    exit 0
+}
+
+status_daemon() {
+    if is_running; then
+        exit 0
+    fi
+    exit 1
+}
+
+case "$1" in
+    start)
+        start_daemon
+        ;;
+    stop)
+        stop_daemon
+        ;;
+    status)
+        status_daemon
+        ;;
+    log)
+        echo "${LOG_FILE}"
+        ;;
+    *)
+        exit 1
+        ;;
+esac

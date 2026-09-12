@@ -1,0 +1,23 @@
+# Rathole 群晖客户端配置示例
+# 完整参数参考: https://github.com/rathole-org/rathole
+
+[client]
+remote_addr = "你的云服务器公网IP:2333"
+default_token = "自定义连接密匙"
+heartbeat_timeout = 40
+retry_interval = 1
+
+[client.transport]
+type = "tcp"
+
+# 服务 1: 映射群晖 DSM 网页管理端口 (默认 HTTP: 5000 / HTTPS: 5001)
+[client.services.dsm]
+type = "tcp"
+local_addr = "127.0.0.1:5000"
+nodelay = true
+
+# 服务 2: 映射群晖 SSH 端口 (默认 22)
+[client.services.ssh]
+type = "tcp"
+local_addr = "127.0.0.1:22"
+nodelay = true

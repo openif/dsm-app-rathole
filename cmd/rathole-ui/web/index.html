@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rathole - 群晖控制面板</title>
+  <link rel="icon" type="image/png" href="images/icon_32.png">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <img src="images/icon_64.png" width="40" height="40" alt="Rathole">
+        </div>
+        <div class="title-wrap">
+          <div class="app-title">Rathole <span class="version-tag">DSM 7</span></div>
+          <div class="app-subtitle">高性能 NAT 穿透代理控制面板</div>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="status-badge" id="statusBadge">
+          <span class="status-dot"></span>
+          <span class="status-text" id="statusText">检测中...</span>
+        </div>
+        <div class="status-meta">
+          <span id="uptimeText">运行时长: -</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="btn-group">
+          <button id="btnStart" class="btn btn-success" title="启动 Rathole 核心服务">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            启动
+          </button>
+          <button id="btnStop" class="btn btn-danger" title="停止 Rathole 核心服务">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
+            停止
+          </button>
+          <button id="btnRestart" class="btn btn-restart" title="重启 Rathole 核心服务">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            重启
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="configTab">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        配置文件 (config.toml)
+      </button>
+      <button class="tab-btn" data-tab="logTab">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+        运行日志 (Log)
+      </button>
+      <button class="tab-btn" data-tab="helpTab">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        帮助与说明
+      </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Config Tab -->
+      <section id="configTab" class="tab-pane active">
+        <div class="editor-toolbar">
+          <div class="toolbar-left">
+            <span class="file-path">/var/packages/rathole/var/config.toml</span>
+            <span id="dirtyBadge" class="dirty-badge" style="display:none;">
+              <span class="dirty-dot"></span>未保存修改
+            </span>
+            <span id="editorStats" class="editor-stats">0 行 | 0 字符</span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btnCopyConfig" class="btn btn-xs btn-outline" title="复制当前配置文件全部内容">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              复制
+            </button>
+            <button id="btnResetDefault" class="btn btn-xs btn-outline" title="恢复为默认客户端配置模板">恢复默认模板</button>
+            <button id="btnReloadConfig" class="btn btn-xs btn-outline" title="从磁盘重新载入当前配置">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+              重新加载
+            </button>
+            <button id="btnSaveConfig" class="btn btn-xs btn-primary" title="快捷键: Ctrl + S">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              保存配置
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-container">
+          <div class="line-numbers" id="lineNumbers"></div>
+          <textarea id="configEditor" class="code-textarea" spellcheck="false" placeholder="# 在此输入或粘贴 Rathole 的 TOML 配置文件内容..."></textarea>
+        </div>
+      </section>
+
+      <!-- Log Tab -->
+      <section id="logTab" class="tab-pane">
+        <div class="log-toolbar">
+          <div class="toolbar-left">
+            <label class="checkbox-label">
+              <input type="checkbox" id="autoRefreshLog" checked>
+              <span>自动刷新 (2s)</span>
+            </label>
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="logSearchInput" placeholder="过滤关键字 (如 ERROR, ssh)..." />
+              <button id="btnClearSearch" class="btn-clear-search" style="display:none;" title="清除搜索">&times;</button>
+            </div>
+            <span id="logFilterStats" class="log-filter-stats"></span>
+            <span id="logMeta" class="log-meta"></span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btnScrollTop" class="btn btn-xs btn-outline" title="滚动到顶部">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+              顶部
+            </button>
+            <button id="btnScrollBottom" class="btn btn-xs btn-outline" title="滚动到底部">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              底部
+            </button>
+            <button id="btnRefreshLog" class="btn btn-xs btn-outline" title="手动刷新最新日志">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+              刷新
+            </button>
+            <button id="btnClearLog" class="btn btn-xs btn-danger" title="清空日志文件">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              清空日志
+            </button>
+          </div>
+        </div>
+        <div class="log-container" id="logContainer">
+          <div id="logViewer" class="log-viewer">加载日志中...</div>
+        </div>
+      </section>
+
+      <!-- Help Tab -->
+      <section id="helpTab" class="tab-pane">
+        <div class="help-card">
+          <h3>📌 Rathole 群晖套件说明</h3>
+          <p>本套件专为群晖 DSM 7.x 深度定制，采用<b>原生桌面内嵌窗口架构 (WebMan 3rdparty)</b>，无缝兼容 <b>QuickConnect 云端穿透、局域网内网与外网直连</b>，无需占用群晖外部端口。</p>
+          
+          <h4>📁 核心文件与配置路径</h4>
+          <ul>
+            <li><b>配置文件路径</b>：<code>/var/packages/rathole/var/config.toml</code>（套件升级不会丢失配置）</li>
+            <li><b>运行日志路径</b>：<code>/var/packages/rathole/var/rathole.log</code></li>
+            <li><b>运行方式</b>：保存配置后点击顶部的 <b>[重启]</b> 或保存气泡中的 <b>[立即重启生效]</b> 即可生效。</li>
+          </ul>
+
+          <div class="help-section-header">
+            <h4>🔐 推荐配置：Noise 安全加密模式 (已在 DSM 实测验证通过)</h4>
+            <button class="btn btn-xs btn-outline btn-copy-sample" data-target="sampleNoise">复制示例</button>
+          </div>
+          <pre class="help-code" id="sampleNoise"># Rathole 群晖客户端配置 (Noise 安全传输加密)
+[client]
+remote_addr = "你的公网服务器IP:37000"
+default_token = "你的安全连接Token"
+heartbeat_timeout = 40
+retry_interval = 1
+
+[client.transport]
+type = "noise"
+
+[client.transport.noise]
+pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
+remote_public_key = "服务端生成的PublicKey公钥"
+
+# 服务 1: 映射群晖 DSM 桌面网页管理 (默认 HTTP: 5000 / HTTPS: 5001)
+[client.services.dsm]
+type = "tcp"
+local_addr = "127.0.0.1:5000"
+nodelay = true
+
+# 服务 2: 映射群晖 SSH 终端端口 (默认 22)
+[client.services.ssh]
+type = "tcp"
+local_addr = "127.0.0.1:22"
+nodelay = true</pre>
+
+          <div class="help-section-header">
+            <h4>⚙️ 基础配置：普通 TCP 传输模式</h4>
+            <button class="btn btn-xs btn-outline btn-copy-sample" data-target="sampleTcp">复制示例</button>
+          </div>
+          <pre class="help-code" id="sampleTcp"># Rathole 群晖客户端配置 (普通 TCP 传输)
+[client]
+remote_addr = "你的公网服务器IP:2333"
+default_token = "你的安全连接Token"
+heartbeat_timeout = 40
+retry_interval = 1
+
+[client.transport]
+type = "tcp"
+
+# 服务 1: 映射群晖 DSM 控制面板
+[client.services.dsm]
+type = "tcp"
+local_addr = "127.0.0.1:5000"
+nodelay = true
+
+# 服务 2: 映射群晖 SSH
+[client.services.ssh]
+type = "tcp"
+local_addr = "127.0.0.1:22"
+nodelay = true</pre>
+
+          <p class="help-footer">项目官方文档：<a href="https://github.com/rathole-org/rathole" target="_blank" rel="noopener noreferrer">https://github.com/rathole-org/rathole</a></p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Interactive Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

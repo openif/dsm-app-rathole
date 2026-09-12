@@ -1,0 +1,22 @@
+# Binaries and build output
+_build_spk/
+_cache/
+*.spk
+*.tar
+*.tgz
+*.zip
+/rathole-ui
+/rathole
+bin/
+
+# Runtime logs and PIDs
+*.log
+*.pid
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

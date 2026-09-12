@@ -1,0 +1,3 @@
+#!/bin/sh
+# 卸载后脚本（保留 /var/packages/rathole/var 配置，避免用户重装丢失配置）
+exit 0

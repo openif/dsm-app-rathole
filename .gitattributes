@@ -1,0 +1,8 @@
+# Enforce LF for all shell scripts and configs to ensure Synology Linux compatibility
+spk/scripts/* text eol=lf
+spk/ui/api.cgi text eol=lf
+spk/INFO text eol=lf
+spk/conf/* text eol=lf
+spk/etc/* text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf

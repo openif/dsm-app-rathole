@@ -1,0 +1,16 @@
+{
+  ".url": {
+    "SYNO.SDS.Rathole": {
+      "type": "legacy",
+      "title": "Rathole",
+      "desc": "Rathole 内网穿透控制面板",
+      "icon": "images/icon_{0}.png",
+      "appWindow": "SYNO.SDS.Rathole",
+      "allowMultiInstance": false,
+      "width": 1100,
+      "height": 780,
+      "url": "/webman/3rdparty/rathole/index.html",
+      "allUsers": false
+    }
+  }
+}

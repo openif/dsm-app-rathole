@@ -1,0 +1,43 @@
+#!/bin/sh
+# ==============================================================================
+# postupgrade - 套件升级后初始化脚本 (遵循最小权限原则 0775/0664)
+# ==============================================================================
+
+SYNOPKG_PKGNAME="rathole"
+[ -z "${SYNOPKG_PKGDEST}" ] && SYNOPKG_PKGDEST="/var/packages/${SYNOPKG_PKGNAME}/target"
+
+# 1. 确保运行时目录存在，并赋予属主 sc-rathole 与 Web 组 http 读写执行权限 (0775)
+for dir in "/var/packages/${SYNOPKG_PKGNAME}/var" "${SYNOPKG_PKGDEST}/var" "${SYNOPKG_PKGVAR}"; do
+    if [ -n "$dir" ]; then
+        mkdir -p "$dir" 2>/dev/null || true
+        chmod 775 "$dir" 2>/dev/null || true
+        chown -R sc-rathole:http "$dir" 2>/dev/null || true
+    fi
+done
+
+# 2. 检查现有配置或写入默认模板，更新日志读写权限 (0664)
+DEFAULT_CONF="${SYNOPKG_PKGDEST}/etc/config.toml.default"
+for dir in "/var/packages/${SYNOPKG_PKGNAME}/var" "${SYNOPKG_PKGDEST}/var"; do
+    conf="${dir}/config.toml"
+    if [ ! -f "$conf" ] && [ -f "$DEFAULT_CONF" ]; then
+        cp "$DEFAULT_CONF" "$conf" 2>/dev/null || true
+    fi
+    for f in "${dir}/config.toml" "${dir}/rathole.log" "${dir}/rathole-ui.log" "${dir}/rathole.pid"; do
+        touch "$f" 2>/dev/null || true
+        chmod 664 "$f" 2>/dev/null || true
+        chown sc-rathole:http "$f" 2>/dev/null || true
+    done
+done
+
+# 3. 初始化 /tmp 降级备份日志文件
+for f in /tmp/rathole.log /tmp/rathole-ui.log /tmp/rathole.pid /tmp/rathole-ui.pid; do
+    touch "$f" 2>/dev/null || true
+    chmod 664 "$f" 2>/dev/null || true
+done
+
+# 4. 二进制执行文件与 WebUI 前端资产可执行权限 (0755)
+chmod 755 "${SYNOPKG_PKGDEST}/bin/rathole" 2>/dev/null || true
+chmod 755 "${SYNOPKG_PKGDEST}/bin/rathole-ui" 2>/dev/null || true
+chmod -R 755 "${SYNOPKG_PKGDEST}/ui" 2>/dev/null || true
+
+exit 0

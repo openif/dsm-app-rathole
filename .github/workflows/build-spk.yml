@@ -1,0 +1,47 @@
+name: Build Synology SPK
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y powershell tar gzip
+
+      - name: Build SPK for all architectures
+        shell: pwsh
+        run: |
+          ./build_spk.ps1 -Arch rtd1296 -Version 1.0.0-0001
+          ./build_spk.ps1 -Arch aarch64 -Version 1.0.0-0001
+          ./build_spk.ps1 -Arch x86_64 -Version 1.0.0-0001
+
+      - name: Upload SPK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rathole-synology-spk
+          path: "*.spk"
+
+      - name: Publish Release Assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.spk"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
